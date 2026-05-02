@@ -148,5 +148,37 @@
         "date": "2026-05-02",
         "time": "08:00",
         "category": "Academic"
+    },
+    {
+        "task": "grocery",
+        "date": "2026-05-05",
+        "time": "10:00",
+        "category": "Outdoor Errands",
+        "duration_mins": 60,
+        "is_flexible": true
+    },
+    {
+        "task": "grocery",
+        "date": "2026-05-09",
+        "time": "10:00",
+        "category": "Outdoor Errands",
+        "duration_mins": 120,
+        "is_flexible": true
+    },
+    {
+        "task": "room cleaning",
+        "date": "2026-05-09",
+        "time": "08:00",
+        "category": "Home Chores",
+        "duration_mins": 60,
+        "is_flexible": true
+    },
+    {
+        "task": "gooning",
+        "date": "2026-05-09",
+        "time": "12:00",
+        "category": "Self-Study",
+        "duration_mins": 60,
+        "is_flexible": true
     }
 ]

@@ -21,7 +21,12 @@ def view_schedule(*args):
         schedule_listbox.insert(tk.END, " No events scheduled for this day.")
     else:
         for e in events_today:
-            display_str = f"🕒 {e['time']} | {e['task']} [{e['category']}]"
+            # 1. Safely get the duration (default to 60m if it's an older event without one)
+            duration = e.get('duration_mins', 60)
+            
+            # 2. Add ({duration}m) to the display string
+            display_str = f"🕒 {e['time']} ({duration}m) | {e['task']} [{e['category']}]"
+            
             schedule_listbox.insert(tk.END, display_str)
 
 def ask_ai():
@@ -45,27 +50,48 @@ def ask_ai():
         original_time = data['time']
         date = data['date']
         task_name = data['task']
+        category = data['category']
         
-        # 1. NEW: Check for an exact duplicate first!
+        duration = data.get('duration_mins', 60) 
+        is_flexible = data.get('is_flexible', True) 
+        
         if database.is_duplicate(date, original_time, task_name):
-            messagebox.showinfo("Duplicate Event", f"You already have '{task_name}' scheduled on {date} at {original_time}.\n\nSkipping duplicate!")
-            continue # Skip adding this specific duplicate event
+            messagebox.showinfo("Duplicate", f"Skipping duplicate: '{task_name}'")
+            continue 
             
-        # 2. Check for a general time slot conflict
-        if database.check_conflict(date, original_time):
-            new_time = database.find_next_available(date, original_time)
-            
+        has_conflict = database.check_conflict(date, original_time, duration)
+        out_of_window = database.is_outside_context_window(date, original_time, category)
+
+        # SCENARIO 1: The time slot is already taken!
+        if has_conflict:
+            new_time = database.find_next_available(date, original_time, duration, category)
             if new_time:
-                msg = f"Time slot {original_time} on {date} is booked!\n\nSAPSA found a gap at {new_time}.\n\nSchedule '{task_name}' on {date} at {new_time} instead?"
-                if messagebox.askyesno("Conflict Detected!", msg):
+                strict_note = "This is a STRICT class!" if not is_flexible else "This is a flexible event."
+                msg = f"Time slot {original_time} is booked! ({strict_note})\n\nSAPSA found an open {category} slot at {new_time}. Schedule it then?"
+                if messagebox.askyesno("Conflict Detected", msg):
                     data['time'] = new_time 
                 else:
                     continue 
             else:
-                messagebox.showerror("Error", f"Your schedule on {date} is completely full!")
+                messagebox.showerror("Error", f"No available {category} slots found!")
                 continue 
 
-        # Save if it passes all checks
+        # SCENARIO 2: The time is free, but breaks the Weekday rules!
+        elif out_of_window:
+            msg = f"{original_time} is outside normal hours for '{category}'.\n\nDo you want to FORCE add it anyway (e.g., taking a day off)?"
+            if not messagebox.askyesno("Rule Warning", msg):
+                # User clicked NO, they want SAPSA to auto-fix it
+                new_time = database.find_next_available(date, original_time, duration, category)
+                if new_time:
+                    if messagebox.askyesno("Auto-Fix", f"Move it to the correct time window at {new_time}?"):
+                        data['time'] = new_time
+                    else:
+                        continue
+                else:
+                    messagebox.showerror("Error", "No available slots found.")
+                    continue
+
+        # If it passes all checks (or user clicked FORCE), save it!
         database.add_event(data)
         events_added += 1
     
@@ -77,26 +103,80 @@ def ask_ai():
         cal.selection_set(target_date)
         view_schedule()
 
+def get_briefing():
+    selected_date = cal.selection_get().strftime("%Y-%m-%d")
+    events = database.get_events_for_date(selected_date)
+    
+    status_label.config(text="Status: AI is analyzing your day...", fg="blue")
+    root.update()
+    
+    # Send the events to Gemini
+    briefing, error = ai_engine.generate_daily_briefing(selected_date, events)
+    
+    if error:
+        messagebox.showerror("AI Error", f"Failed to generate briefing:\n{error}")
+        status_label.config(text="Status: Ready", fg="black")
+    else:
+        # Pop up a nice message box with the AI's summary
+        messagebox.showinfo(f"SAPSA Briefing - {selected_date}", briefing)
+        status_label.config(text="Status: Briefing generated!", fg="green")
+
 def add_manually():
     task = manual_task.get()
     time = manual_time.get()
     cat = manual_cat.get()
     date = cal.selection_get().strftime("%Y-%m-%d")
+    duration = 60 # Default manual entries to 1 hour
     
     if not task or not time:
         status_label.config(text="Status: Fill all manual fields!", fg="red")
         return
         
-    # Manual Entry Checks
+    # Safety Check: Make sure the user typed valid 24-hour time (HH:MM)
+    try:
+        datetime.strptime(time, "%H:%M")
+    except ValueError:
+        messagebox.showerror("Time Format Error", "Please enter the time in 24-hour format (e.g., 14:00 for 2 PM).")
+        return
+        
     if database.is_duplicate(date, time, task):
         messagebox.showinfo("Duplicate Event", f"You already have '{task}' scheduled at this time!")
         return
         
-    if database.check_conflict(date, time):
-        messagebox.showwarning("Conflict", f"You already have a different event scheduled at {time}!")
-        return
-        
-    new_event = {"task": task, "date": date, "time": time, "category": cat}
+    # Apply the same AI Rules to Manual Entry
+    has_conflict = database.check_conflict(date, time, duration)
+    out_of_window = database.is_outside_context_window(date, time, cat)
+
+    # SCENARIO 1: Conflict
+    if has_conflict:
+        new_time = database.find_next_available(date, time, duration, cat)
+        if new_time:
+            msg = f"Time slot {time} is booked!\n\nSAPSA found an open {cat} slot at {new_time}. Schedule it then?"
+            if messagebox.askyesno("Conflict Detected", msg):
+                time = new_time 
+            else:
+                return # Stop if user says no
+        else:
+            messagebox.showerror("Error", f"No available {cat} slots found!")
+            return 
+
+    # SCENARIO 2: Out of Window Rules
+    elif out_of_window:
+        msg = f"{time} is outside normal hours for '{cat}'.\n\nDo you want to FORCE add it anyway?"
+        if not messagebox.askyesno("Rule Warning", msg):
+            # User clicked NO, they want SAPSA to auto-fix it
+            new_time = database.find_next_available(date, time, duration, cat)
+            if new_time:
+                if messagebox.askyesno("Auto-Fix", f"Move it to the correct time window at {new_time}?"):
+                    time = new_time
+                else:
+                    return
+            else:
+                messagebox.showerror("Error", "No available slots found.")
+                return
+
+    # Assuming manual entries are "Hard Anchors" (Strict) so the AI doesn't move them later
+    new_event = {"task": task, "date": date, "time": time, "category": cat, "duration_mins": duration, "is_flexible": False}
     database.add_event(new_event) 
     
     status_label.config(text="Status: Event added manually.", fg="green")
@@ -115,7 +195,10 @@ def delete_gui_event():
         return
 
     parts = item_text.replace("🕒 ", "").split(" | ")
-    event_time = parts[0]
+    
+    # FIX: Split the time string again to remove the "(60m)" part
+    event_time = parts[0].split(" ")[0] 
+    
     event_task = parts[1].split(" [")[0]
     selected_date = cal.selection_get().strftime("%Y-%m-%d")
     
@@ -162,6 +245,9 @@ schedule_listbox.pack(fill="both", expand=True)
 btn_delete = tk.Button(list_frame, text="Delete Selected", bg="red", fg="white", command=delete_gui_event)
 btn_delete.pack(pady=5)
 
+btn_briefing = tk.Button(list_frame, text="Generate AI Briefing", bg="blue", fg="white", font=("Arial", 10, "bold"), command=get_briefing)
+btn_briefing.pack(pady=5)
+
 ai_frame = tk.LabelFrame(root, text=" 🤖 AI Assistant ", font=("Arial", 12, "bold"), fg="blue", padx=10, pady=10)
 ai_frame.pack(fill="x", padx=20, pady=10)
 
@@ -184,7 +270,7 @@ manual_time = tk.Entry(man_frame, width=10)
 manual_time.grid(row=0, column=3, padx=5)
 
 tk.Label(man_frame, text="Type:").grid(row=0, column=4, padx=5)
-manual_cat = ttk.Combobox(man_frame, values=["Academic", "Personal"], width=10)
+manual_cat = ttk.Combobox(man_frame, values=["Academic", "Self-Study", "Home Chores", "Outdoor Errands"], width=15)
 manual_cat.current(0)
 manual_cat.grid(row=0, column=5, padx=5)
 
