@@ -1,0 +1,32 @@
+>> dashboard laga lay chup chap jismay meri sari meetings dikhay
+
+Think of **Context Windows** as the "common sense" layer of your AI. Without them, your assistant is just a calculator; with them, it becomes a scheduler that understands how a human actually lives.[cite: 1]
+
+Here is exactly what we are trying to achieve:
+
+**1. Restricting the Search Space**
+In your project, the 24-hour day is treated as a **1D grid of nodes**.[cite: 1] Without context windows, if you ask to "Schedule a Study Session" and 2 PM is busy, a basic algorithm might find a free gap at **3 AM** and put it there. Technically, it found a "gap," but realistically, it’s a failure.
+
+By using context windows, we tell the **Search Algorithm** to only look at specific nodes for specific tasks:[cite: 1]
+*   **Academic Window (e.g., 8 AM – 5 PM):** The AI only searches these nodes for lectures, labs, and study groups.[cite: 1]
+*   **Personal Window (e.g., 5 PM – 10 PM):** The AI only searches these nodes for gym sessions, gaming, or dinners.[cite: 1]
+
+
+**2. Achieving "Human-Centric" Optimization**
+The ultimate goal is for the system to distinguish between different types of time commitments.[cite: 1]
+*   **Strict vs. Flexible:** A "Lecture" is a hard anchor, but a "Study Session" is flexible.[cite: 1]
+*   **Energy Management:** Context windows ensure that academic tasks don't bleed into your rest time, effectively optimizing your management of a dynamic schedule.[cite: 1]
+
+**3. Implementation in the Code**
+Currently, our `find_next_available` function in `database.py` searches from the requested time until 11 PM. To implement **Context Windows**, we will add a simple `if` statement:
+*   If `category == "Academic"`, the search range is restricted (e.g., it stops searching at 5 PM).
+*   If `category == "Personal"`, it starts searching from 5 PM onwards.
+
+This ensures the AI doesn't just find *any* gap, but the *right* gap for that specific part of your life.[cite: 1]
+
+>> ok make it pretty 
+	1. exam pretty og tinker route 
+	2.  for me which is go with full bonkers stuff 
+
+
+ 

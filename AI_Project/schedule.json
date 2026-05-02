@@ -1,0 +1,152 @@
+[
+    {
+        "task": "DevDay",
+        "date": "2026-05-01",
+        "time": "14:00",
+        "category": "Academic"
+    },
+    {
+        "task": "DLD class",
+        "date": "2026-05-04",
+        "time": "14:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-04",
+        "time": "15:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-07",
+        "time": "15:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-08",
+        "time": "13:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-11",
+        "time": "14:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-14",
+        "time": "15:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-15",
+        "time": "13:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-18",
+        "time": "14:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-21",
+        "time": "15:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-22",
+        "time": "13:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-04",
+        "time": "16:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-11",
+        "time": "15:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-18",
+        "time": "15:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-25",
+        "time": "14:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-07",
+        "time": "16:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-14",
+        "time": "16:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-21",
+        "time": "16:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-28",
+        "time": "15:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-01",
+        "time": "13:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-15",
+        "time": "14:00",
+        "category": "Academic"
+    },
+    {
+        "task": "OS class",
+        "date": "2026-05-22",
+        "time": "14:00",
+        "category": "Academic"
+    },
+    {
+        "task": "FAST",
+        "date": "2026-05-04",
+        "time": "07:30",
+        "category": "Academic"
+    },
+    {
+        "task": "movie night",
+        "date": "2026-05-01",
+        "time": "22:00",
+        "category": "Personal"
+    },
+    {
+        "task": "physics class",
+        "date": "2026-05-02",
+        "time": "08:00",
+        "category": "Academic"
+    }
+]
