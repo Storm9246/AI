@@ -30,29 +30,36 @@ def process_command(user_text):
     Analyze this user request: "{user_text}"
     
     CRITICAL RULES:
-    1. TIME TRAVEL: If the user requests a time that has already passed today, you MUST assume TOMORROW and set the date accordingly.
-    2. MISSING INFO: If no date is specified, assume today. If no time is specified, make a logical guess or default to "09:00".
-    3. TASKS VS EVENTS (CRITICAL DISTINCTION): 
-       - "event": Things that take up a physical block of time and cause conflicts (Classes, Meetings, Exams, Quizzes).
-       - "task": Things that are due at a specific time but don't block the calendar (Deadlines, Projects, Assignments, Lab Tasks, Personal Tasks).
+    1. TIME TRAVEL: If the user requests a time that has already passed today, assume TOMORROW and set the date.
+    2. TASKS VS EVENTS: "event" blocks time (Classes, Meetings). "task" is a deadline (Projects).
+    3. RECURRENCE (CRITICAL): If the user asks for a repeating event (e.g., "Every Thursday for a month" or "Sick day all week"), output "recur_type": "weekly" (or "daily") and "recur_until": "YYYY-MM-DD". For single events, use "recur_type": "none".
+    4. BATCHING: If asking for multiple different days/times (e.g., "Mon and Wed at 8am"), output multiple JSON objects.
 
-    Extract the information into a strict JSON ARRAY of objects. Use exactly these keys:
-    - "action" (string: 'schedule' or 'clear_day')
-    - "item_type" (string: 'event' or 'task')
-    - "task" (string: The name, e.g., 'AI Class', 'Final Exam', or 'Gym/Pay Bills')
-    - "date" (string: format YYYY-MM-DD)
-    - "time" (string: format HH:MM in 24-hour time. For events, start time. For tasks, deadline time)
-    - "location" (string: Room name, or 'TBD')
-    - "category" (string: 'Academic', 'Self-Study', 'Home Chores', 'Outdoor Errands', 'Project', 'Exam', 'Quiz', 'Assignment', 'Lab Task', 'Personal Task')
-    - "duration_mins" (integer: Default 60 for classes/quizzes, 120 for exams. 0 for tasks)
-    - "is_flexible" (boolean: true if it can be moved, false if strict like exams/classes)
-    - "status" (string: 'pending' if it's a task. Leave blank "" for events)
+    Extract into a strict JSON ARRAY of objects. Keys:
+    - "action" ('schedule' or 'clear_day')
+    - "item_type" ('event' or 'task')
+    - "task" (String. If clear_day, put 'Off Day' or 'Sick Day')
+    - "date" (YYYY-MM-DD. For clear_day, the date to wipe)
+    - "time" (HH:MM in 24-hour. Use "00:00" for clear_day)
+    - "location" (Room or 'TBD')
+    - "category" ('Academic', 'Self-Study', 'Home Chores', 'Outdoor Errands', 'Project', 'Exam', 'Quiz', 'Assignment', 'Lab Task', 'Personal Task', 'All')
+    - "duration_mins" (integer: Default 60. 0 for tasks/clear_day)
+    - "is_flexible" (boolean: true/false)
+    - "status" ('pending' for task. "" for events/clear_day)
+    - "recur_type" ('none', 'daily', or 'weekly')
+    - "recur_until" (YYYY-MM-DD of the end date, or "")
 
-    EXAMPLE INPUT 1: "I have a DB lab task due tomorrow at 5pm."
-    EXAMPLE OUTPUT 1: [{{"action": "schedule", "item_type": "task", "task": "DB Lab Task", "date": "2026-05-11", "time": "17:00", "location": "TBD", "category": "Lab Task", "duration_mins": 0, "is_flexible": false, "status": "pending"}}]
-    
-    EXAMPLE INPUT 2: "Schedule my AI Midterm Exam for Friday at 10 AM."
-    EXAMPLE OUTPUT 2: [{{"action": "schedule", "item_type": "event", "task": "AI Midterm Exam", "date": "2026-05-15", "time": "10:00", "location": "TBD", "category": "Exam", "duration_mins": 120, "is_flexible": false, "status": ""}}]
+    EXAMPLE 1 (Batching): "Add OS Lab on Mon and Wed at 2pm"
+    OUTPUT 1: [{{"action": "schedule", "item_type": "event", "task": "OS Lab", "date": "2026-05-11", "time": "14:00", "location": "TBD", "category": "Academic", "duration_mins": 60, "is_flexible": false, "status": "", "recur_type": "none", "recur_until": ""}}, {{"action": "schedule", "item_type": "event", "task": "OS Lab", "date": "2026-05-13", "time": "14:00", "location": "TBD", "category": "Academic", "duration_mins": 60, "is_flexible": false, "status": "", "recur_type": "none", "recur_until": ""}}]
+
+    EXAMPLE 2 (Recurrence): "I have a weekly team meeting every Friday at 10am until June 30th"
+    OUTPUT 2: [{{"action": "schedule", "item_type": "event", "task": "Team Meeting", "date": "2026-05-15", "time": "10:00", "location": "TBD", "category": "Academic", "duration_mins": 60, "is_flexible": true, "status": "", "recur_type": "weekly", "recur_until": "2026-06-30"}}]
+
+    EXAMPLE 3 (Off Day): "Mark tomorrow as a sick day"
+    OUTPUT 3: [{{"action": "clear_day", "item_type": "event", "task": "Sick Day", "date": "2026-05-11", "time": "00:00", "location": "TBD", "category": "All", "duration_mins": 0, "is_flexible": false, "status": "", "recur_type": "none", "recur_until": ""}}]
+
+    EXAMPLE 4 (Parallel Mapping / Respectively): "Add OS, AI, and DB on Mon, Tue, and Fri at 8am, 9am, and 10am in D16, E32, and C16 respectively."
+    OUTPUT 4: [{{"action": "schedule", "item_type": "event", "task": "OS", "date": "2026-05-11", "time": "08:00", "location": "D16", "category": "Academic", "duration_mins": 60, "is_flexible": false, "status": "", "recur_type": "none", "recur_until": ""}}, {{"action": "schedule", "item_type": "event", "task": "AI", "date": "2026-05-12", "time": "09:00", "location": "E32", "category": "Academic", "duration_mins": 60, "is_flexible": false, "status": "", "recur_type": "none", "recur_until": ""}}, {{"action": "schedule", "item_type": "event", "task": "DB", "date": "2026-05-15", "time": "10:00", "location": "C16", "category": "Academic", "duration_mins": 60, "is_flexible": false, "status": "", "recur_type": "none", "recur_until": ""}}]
 
     Return ONLY the raw JSON array. Do not wrap it in markdown formatting or backticks.
     """

@@ -1,191 +1,266 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
-from tkcalendar import Calendar
-import ai_engine
-import database 
-import customtkinter as ctk 
+from tkinter import messagebox
+import customtkinter as ctk
 from datetime import datetime, timedelta
 
-class ConflictDialog(ctk.CTkToplevel):
-    def __init__(self, master, date, original_time, category, duration, all_slots, is_flexible, task_name, conflict_reason):
-        super().__init__(master)
-        self.title("🚨 SAPSA Conflict Resolution")
-        self.geometry("520x600")
-        self.attributes("-topmost", True)
-        self.grab_set() 
-
-        self.result_action = None 
-        self.grid_columnconfigure(0, weight=1)
-
-        # Top Warning Header (Now uses the exact reason from the database!)
-        ctk.CTkLabel(self, text=f"Conflict: {task_name}", font=("Segoe UI", 22, "bold"), text_color="#c93434").grid(row=0, column=0, pady=(20, 5))
-        ctk.CTkLabel(self, text=f"🚨 {conflict_reason}", font=("Segoe UI", 16, "bold"), text_color="#d68910", wraplength=450).grid(row=1, column=0, pady=(0, 20))
-
-        # 1. The "Smart Suggestion" Panel
-        if all_slots:
-            orig_dt = datetime.strptime(original_time, "%H:%M")
-            recommended = min(all_slots, key=lambda slot: abs((datetime.strptime(slot, "%H:%M") - orig_dt).total_seconds()))
-        else:
-            recommended = None
-
-        if recommended:
-            rec_frame = ctk.CTkFrame(self, fg_color="#1f538d", corner_radius=10)
-            rec_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
-            ctk.CTkLabel(rec_frame, text="💡 Smart Suggestion", font=("Segoe UI", 15, "bold")).pack(pady=(10, 0))
-            ctk.CTkLabel(rec_frame, text=f"Closest free {category} slot: {recommended}").pack(pady=5)
-            ctk.CTkButton(rec_frame, text=f"Accept {recommended}", fg_color="#2fa572", hover_color="#248058", command=lambda: self.close_with(recommended)).pack(pady=10)
-
-        # 2. The Slider/Dropdown Panel
-        drop_frame = ctk.CTkFrame(self, corner_radius=10)
-        drop_frame.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
-        ctk.CTkLabel(drop_frame, text="🔍 Browse All Free Slots", font=("Segoe UI", 14, "bold")).pack(pady=(10, 5))
-        
-        self.slot_var = ctk.StringVar(value=all_slots[0] if all_slots else "No slots available")
-        self.dropdown = ctk.CTkComboBox(drop_frame, values=all_slots if all_slots else ["None"], variable=self.slot_var, width=200)
-        self.dropdown.pack(pady=5)
-        ctk.CTkButton(drop_frame, text="Select This Slot", command=lambda: self.close_with(self.slot_var.get())).pack(pady=10)
-
-        # 3. Action Buttons
-        action_frame = ctk.CTkFrame(self, fg_color="transparent")
-        action_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
-        action_frame.grid_columnconfigure((0, 1), weight=1)
-        
-        btn_overwrite = ctk.CTkButton(action_frame, text="🗑️ Replace Conflicting Event", fg_color="#d68910", hover_color="#b3710d", command=lambda: self.close_with("OVERWRITE"))
-        btn_overwrite.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
-
-        btn_next = ctk.CTkButton(action_frame, text="⏭️ Find Next Free Day", command=lambda: self.close_with("NEXT_DAY"))
-        btn_next.grid(row=1, column=0, sticky="ew", padx=(0, 5))
-
-        force_color = "#c93434" if not is_flexible else "#b08d5c"
-        btn_force = ctk.CTkButton(action_frame, text="⚠️ Stack (Ignore Rules)", fg_color=force_color, hover_color="#852121", command=lambda: self.close_with("FORCE"))
-        btn_force.grid(row=1, column=1, sticky="ew", padx=(5, 0))
-
-        # 4. The Hover Info Bar 
-        self.info_label = ctk.CTkLabel(self, text="Hover over an action to see what it does.", font=("Segoe UI", 12, "italic"), text_color="gray")
-        self.info_label.grid(row=5, column=0, pady=(0, 10))
-
-        # Bind hover events to update the text!
-        btn_overwrite.bind("<Enter>", lambda e: self.info_label.configure(text="Deletes the blocking event and schedules this one instead."))
-        btn_overwrite.bind("<Leave>", lambda e: self.info_label.configure(text="Hover over an action to see what it does."))
-        
-        btn_next.bind("<Enter>", lambda e: self.info_label.configure(text="Skips blocked days and finds the exact next day this time slot is open."))
-        btn_next.bind("<Leave>", lambda e: self.info_label.configure(text="Hover over an action to see what it does."))
-        
-        btn_force.bind("<Enter>", lambda e: self.info_label.configure(text="Forces the event to save here, even if it overlaps or breaks rules."))
-        btn_force.bind("<Leave>", lambda e: self.info_label.configure(text="Hover over an action to see what it does."))
-
-    def close_with(self, choice):
-        if choice == "None" or choice == "No slots available":
-            return
-        self.result_action = choice
-        self.destroy()
+import database 
+import ai_engine
+import gui  # Imports all your visual components from gui.py
 
 # ==========================================
-# STAGE 2: THE VIEW SWITCHER (NEW)
+# 1. VIEW SWITCHERS & DASHBOARDS
 # ==========================================
 def switch_view(view_name):
-    """Hides all frames and only shows the one requested."""
-    top_frame.pack_forget() 
-    task_view_frame.pack_forget() 
-    dash_view_frame.pack_forget() 
+    gui.top_frame.pack_forget() 
+    gui.task_view_frame.pack_forget() 
+    gui.dash_view_frame.pack_forget() 
+    gui.settings_view_frame.pack_forget() # NEW
+    gui.ai_frame.pack_forget() 
     
-    # We use 'before=ai_frame' so the views always stay at the top of the app!
     if view_name == "og":
-        top_frame.pack(pady=20, fill="x", padx=20, before=ai_frame)
+        gui.ai_frame.pack(fill="x", padx=30, pady=10, before=gui.btn_toggle_manual)
+        gui.top_frame.pack(pady=20, fill="x", padx=20, before=gui.ai_frame)
     elif view_name == "tasks":
-        task_view_frame.pack(pady=20, fill="both", expand=True, padx=20, before=ai_frame)
-        refresh_task_manager()  # <--- STAGE 3 TRIGGER
+        gui.task_view_frame.pack(pady=20, fill="both", expand=True, padx=20, before=gui.btn_toggle_manual)
+        refresh_task_manager() 
     elif view_name == "dash":
-        dash_view_frame.pack(pady=20, fill="both", expand=True, padx=20, before=ai_frame)
-        refresh_grand_dashboard()  # <--- STAGE 3 TRIGGER
+        gui.dash_view_frame.pack(pady=20, fill="both", expand=True, padx=20, before=gui.btn_toggle_manual)
+        refresh_grand_dashboard() 
+    elif view_name == "settings": # NEW
+        gui.settings_view_frame.pack(pady=20, fill="both", expand=True, padx=20, before=gui.btn_toggle_manual)
+        refresh_settings()
 
-# ==========================================
-# STAGE 3: THE DYNAMIC DASHBOARDS (NEW)
-# ==========================================
 def refresh_task_manager():
-    """Wipes the task screen and rebuilds it with fresh checkboxes."""
-    for widget in task_scroll.winfo_children():
+    """Wipes the task screen and rebuilds it into chronological categories."""
+    for widget in gui.task_scroll.winfo_children():
         widget.destroy()
 
     tasks = database.get_all_tasks()
     if not tasks:
-        ctk.CTkLabel(task_scroll, text="No tasks found! You're all caught up. 🎉", font=("Segoe UI", 16)).pack(pady=20)
+        ctk.CTkLabel(gui.task_scroll, text="No tasks found! You're all caught up. 🎉", font=("Segoe UI", 16)).pack(pady=20)
         return
 
     now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    end_of_week = now + timedelta(days=7)
+
+    today_tasks, week_tasks, later_tasks = [], [], []
+
+    # Sort tasks into the three buckets
     for task in tasks:
-        # Check if overdue
         try:
-            deadline = datetime.strptime(f"{task['date']} {task['time']}", "%Y-%m-%d %H:%M")
-            is_overdue = deadline < now and task.get('status') != 'completed'
-        except:
-            is_overdue = False
+            t_date = datetime.strptime(task['date'], "%Y-%m-%d")
+            # Overdue or Due Today
+            if task['date'] == today_str or (t_date < now and task.get('status') != 'completed'):
+                today_tasks.append(task)
+            # Due in the next 7 days
+            elif now <= t_date <= end_of_week:
+                week_tasks.append(task)
+            # Due later
+            else:
+                later_tasks.append(task)
+        except Exception:
+            later_tasks.append(task) # Fallback for bad data
 
-        # Turn overdue items RED
-        text_color = "#ff4c4c" if is_overdue else "white"
-        task_text = f"[{task['category']}] {task['task']} - Due: {task['date']} @ {task['time']}"
-        is_done = task.get('status') == 'completed'
+    # Helper function to build each UI section cleanly
+    def build_task_section(title, task_list, header_color):
+        if not task_list: 
+            return
+            
+        ctk.CTkLabel(gui.task_scroll, text=title, font=("Segoe UI", 16, "bold"), text_color=header_color).pack(anchor="w", pady=(15, 5), padx=5)
+        
+        for task in task_list:
+            try:
+                deadline = datetime.strptime(f"{task['date']} {task['time']}", "%Y-%m-%d %H:%M")
+                is_overdue = deadline < now and task.get('status') != 'completed'
+            except:
+                is_overdue = False
 
-        # The magic wrapper to toggle status and refresh instantly
-        def toggle_wrapper(d=task['date'], t=task['time'], n=task['task']):
-            database.toggle_task_status(d, t, n)
-            refresh_task_manager() 
+            text_color = "#ff4c4c" if is_overdue else "white"
+            task_text = f"[{task['category']}] {task['task']} - Due: {task['date']} @ {task['time']}"
+            is_done = task.get('status') == 'completed'
 
-        cb = ctk.CTkCheckBox(task_scroll, text=task_text, text_color=text_color, 
-                             font=("Segoe UI", 14, "overstrike" if is_done else "normal"), 
-                             command=toggle_wrapper)
-        if is_done:
-            cb.select()
+            def toggle_wrapper(d=task['date'], t=task['time'], n=task['task']):
+                database.toggle_task_status(d, t, n)
+                refresh_task_manager() 
 
-        cb.pack(anchor="w", pady=8, padx=10)
+            cb = ctk.CTkCheckBox(gui.task_scroll, text=task_text, text_color=text_color, 
+                                 font=("Segoe UI", 14, "overstrike" if is_done else "normal"), 
+                                 command=toggle_wrapper)
+            if is_done:
+                cb.select()
+            cb.pack(anchor="w", pady=5, padx=15)
 
-def refresh_grand_dashboard():
-    """Wipes the dashboard and builds a chronological list of future classes."""
-    for widget in dash_scroll.winfo_children():
+    # Render the buckets
+    build_task_section("🚨 Today & Overdue", today_tasks, "#ff4c4c")
+    build_task_section("📅 This Week", week_tasks, "#3b8ed0")
+    build_task_section("⏳ Later", later_tasks, "#a0a0a0")
+
+def refresh_grand_dashboard(*args):
+    """Rebuilds the dashboard with Smart Search and Inline Delete Buttons."""
+    for widget in gui.dash_scroll.winfo_children():
         widget.destroy()
 
     upcoming = database.get_upcoming_classes()
+    search_query = gui.dash_search_var.get().lower().strip()
+
+    if search_query:
+        filtered_upcoming = []
+        for e in upcoming:
+            search_string = f"{e['task']} {e.get('location', '')} {e['category']} {e['date']}".lower()
+            if search_query in search_string:
+                filtered_upcoming.append(e)
+        upcoming = filtered_upcoming
+
     if not upcoming:
-        ctk.CTkLabel(dash_scroll, text="No upcoming classes found!", font=("Segoe UI", 16)).pack(pady=20)
+        ctk.CTkLabel(gui.dash_scroll, text="No matches found!", font=("Segoe UI", 16)).pack(pady=20)
         return
 
     for e in upcoming:
+        row_frame = ctk.CTkFrame(gui.dash_scroll, fg_color="transparent")
+        row_frame.pack(fill="x", pady=2, padx=10)
+        
         display_str = f"📅 {e['date']} | 🕒 {e['time']} ({e.get('duration_mins', 60)}m) | {e['task']} (Loc: {e.get('location', 'TBD')}) [{e['category']}]"
-        # Alternate colors based on category to make it look cool
         lbl_color = "#d68910" if e['category'] == "Exam" else "white"
-        ctk.CTkLabel(dash_scroll, text=display_str, font=("Segoe UI", 15), text_color=lbl_color, anchor="w").pack(fill="x", pady=5, padx=10)
+        
+        # Left side: The Class Info
+        ctk.CTkLabel(row_frame, text=display_str, font=("Segoe UI", 15), text_color=lbl_color, anchor="w").pack(side="left")
+        
+        # Right side: The Delete Button
+        def delete_wrapper(d=e['date'], t=e['time'], n=e['task']):
+            database.delete_event(d, t, n)
+            refresh_grand_dashboard() # Instantly refresh dashboard
+            paint_calendar() # Keep calendar colors synced
+            
+        btn_del = ctk.CTkButton(row_frame, text="❌", width=30, fg_color="transparent", hover_color="#c93434", command=delete_wrapper)
+        btn_del.pack(side="right")
+
+def refresh_settings():
+    """Loads the config.json into the UI boxes."""
+    config = database.load_config()
+    
+    # Fill text boxes
+    gui.set_acad_start.delete(0, tk.END)
+    gui.set_acad_start.insert(0, config["academic_start"])
+    gui.set_acad_end.delete(0, tk.END)
+    gui.set_acad_end.insert(0, config["academic_end"])
+
+    # Check the right boxes (0=Mon, 6=Sun)
+    for i, var in enumerate(gui.chk_days):
+        var.set(1 if i in config["weekends"] else 0)
+
+    # Load Active Sick/Off Days
+    for widget in gui.settings_off_scroll.winfo_children():
+        widget.destroy()
+
+    schedule = database.load_schedule()
+    off_days = [e for e in schedule if e.get("action") == "clear_day"]
+
+    if not off_days:
+        ctk.CTkLabel(gui.settings_off_scroll, text="No off days currently active.", font=("Segoe UI", 14, "italic")).pack(pady=10)
+    else:
+        for e in off_days:
+            row = ctk.CTkFrame(gui.settings_off_scroll, fg_color="transparent")
+            row.pack(fill="x", pady=2, padx=5)
+            ctk.CTkLabel(row, text=f"🗓️ {e['date']} - {e.get('task', 'Off Day')}", font=("Segoe UI", 15)).pack(side="left")
+            
+            def del_off(d=e['date'], t=e['time'], n=e['task']):
+                database.delete_event(d, t, n)
+                refresh_settings() # Refresh list
+                paint_calendar()   # Remove red color from calendar instantly
+                
+            ctk.CTkButton(row, text="❌ Remove", width=60, fg_color="#c93434", hover_color="#852121", command=del_off).pack(side="right")
+
+def save_settings():
+    """Reads the UI boxes and writes to config.json."""
+    start = gui.set_acad_start.get().strip()
+    end = gui.set_acad_end.get().strip()
+    weekends = [i for i, var in enumerate(gui.chk_days) if var.get() == 1]
+
+    # Validate Time Format
+    try:
+        datetime.strptime(start, "%H:%M")
+        datetime.strptime(end, "%H:%M")
+    except ValueError:
+        gui.status_label.configure(text="Status: Invalid Time! Use HH:MM (e.g. 08:00)", text_color="red")
+        return
+
+    config = {
+        "academic_start": start,
+        "academic_end": end,
+        "weekends": weekends
+    }
+    database.save_config(config)
+    gui.status_label.configure(text="Status: Settings Saved Successfully!", text_color="#2fa572")
 
 # ==========================================
-# 1. EVENT HANDLERS 
+# 2. CORE LOGIC (CALENDAR & SCHEDULING)
 # ==========================================
 def view_schedule(*args): 
-    formatted_date = cal.selection_get().strftime("%Y-%m-%d")
-    date_label.configure(text=f"Schedule for: {formatted_date}")
+    formatted_date = gui.cal.selection_get().strftime("%Y-%m-%d")
+    gui.date_label.configure(text=f"Schedule for: {formatted_date}")
     
-    schedule_listbox.delete(0, tk.END)
+    gui.schedule_listbox.delete(0, tk.END)
     schedule = database.load_schedule()
-    events_today = [e for e in schedule if e.get("date") == formatted_date]
+    events_today = [e for e in schedule if e.get("date") == formatted_date and e.get("action") != "clear_day"]
     events_today = sorted(events_today, key=lambda x: x['time'])
     
     if not events_today:
-        schedule_listbox.insert(tk.END, " No events scheduled for this day.")
+        gui.schedule_listbox.insert(tk.END, " No events scheduled for this day.")
     else:
         for e in events_today:
-            duration = e.get('duration_mins', 60)
-            location = e.get('location', 'TBD') 
+            if e.get('item_type') == 'task':
+                display_str = f"🚨 {e['time']} | {e['task']} [{e.get('category', 'Task')}]"
+            else:
+                duration = e.get('duration_mins', 60)
+                location = e.get('location', 'TBD') 
+                display_str = f"🕒 {e['time']} ({duration}m) | {e['task']} (Loc: {location}) [{e.get('category')}]"
+            gui.schedule_listbox.insert(tk.END, display_str)
             
-            display_str = f"🕒 {e['time']} ({duration}m) | {e['task']} (Loc: {location}) [{e['category']}]"
-            schedule_listbox.insert(tk.END, display_str)
-            
-    # NEW: Snap back to the OG view automatically when a date is clicked!
     switch_view("og")
+    paint_calendar()
 
-# ==========================================
-# THE UNIVERSAL EVENT HANDLER
-# ==========================================
+def paint_calendar():
+    gui.cal.calevent_remove('all')
+    schedule = database.load_schedule()
+    for e in schedule:
+        if e.get('action') == 'clear_day':
+            try:
+                dt = datetime.strptime(e['date'], "%Y-%m-%d").date()
+                gui.cal.calevent_create(dt, "Off Day", "off_day")
+            except:
+                pass
+            
+    gui.cal.tag_config("off_day", background="#c93434", foreground="white") 
+    gui.cal.tag_config("current_day", background="#2fa572", foreground="white")
+    gui.cal.calevent_create(datetime.now().date(), "Today", "current_day")
+
+def generate_recurring_events(data):
+    events = []
+    recur_type = data.get('recur_type', 'none')
+    recur_until = data.get('recur_until', '')
+    events.append(data.copy())
+    
+    if recur_type in ['daily', 'weekly'] and recur_until:
+        try:
+            curr_date = datetime.strptime(data['date'], "%Y-%m-%d")
+            end_date = datetime.strptime(recur_until, "%Y-%m-%d")
+            delta = timedelta(days=1 if recur_type == 'daily' else 7)
+            
+            curr_date += delta
+            while curr_date <= end_date:
+                new_data = data.copy()
+                new_data['date'] = curr_date.strftime("%Y-%m-%d")
+                new_data['recur_type'] = 'none' 
+                events.append(new_data)
+                curr_date += delta
+        except Exception:
+            pass
+    return events
+
 def process_and_save_event(data):
     task = data['task']
-    cat = data['category']
+    cat = data.get('category', 'Academic')
     duration = data.get('duration_mins', 60) 
     is_flexible = data.get('is_flexible', True) 
     item_type = data.get('item_type', 'event')
@@ -196,15 +271,13 @@ def process_and_save_event(data):
     if database.is_duplicate(date, original_time, task):
         return False 
         
-    # TASK BYPASS
-    if item_type == 'task':
-        if 'status' not in data:
+    if item_type == 'task' or data.get('action') == 'clear_day':
+        if 'status' not in data and item_type == 'task':
             data['status'] = 'pending'
         database.add_event(data)
         return True 
     
     resolved = False
-    
     while not resolved:
         original_time = data['time']
         date = data['date']
@@ -214,314 +287,335 @@ def process_and_save_event(data):
 
         if conflict_msg or rule_msg:
             display_msg = conflict_msg if conflict_msg else rule_msg
-            all_slots = database.get_all_available_slots(date, duration, cat)
+            all_slots = database.get_all_available_slots(date, duration, cat, original_time)
             
-            dialog = ConflictDialog(root, date, original_time, cat, duration, all_slots, is_flexible, task, display_msg)
-            root.wait_window(dialog) 
+            dialog = gui.ConflictDialog(gui.root, date, original_time, cat, duration, all_slots, is_flexible, task, display_msg)
+            gui.root.wait_window(dialog) 
             
             choice = dialog.result_action
             
             if choice is None:
                 return False 
-                
             elif choice == "FORCE":
                 resolved = True 
-                
             elif choice == "OVERWRITE":
                 database.delete_event_at_time(date, original_time)
                 resolved = True
-                
             elif choice == "NEXT_DAY":
                 current_date_obj = datetime.strptime(date, "%Y-%m-%d")
                 next_day_obj = current_date_obj + timedelta(days=1)
-                
                 while database.check_conflict(next_day_obj.strftime("%Y-%m-%d"), original_time, duration):
                     next_day_obj += timedelta(days=1)
-                    
                 data['date'] = next_day_obj.strftime("%Y-%m-%d")
-                
             else:
                 data['time'] = choice 
-                
         else:
             resolved = True
 
     database.add_event(data)
     return True
 
+# ==========================================
+# 3. INTERFACE HANDLERS
+# ==========================================
 def ask_ai():
-    user_text = command_entry.get()
+    user_text = gui.command_entry.get()
     if not user_text.strip():
-        status_label.configure(text="Status: Please type a command first!", text_color="red")
+        gui.status_label.configure(text="Status: Please type a command first!", text_color="red")
         return
 
-    status_label.configure(text="Status: AI is calculating dates & thinking...", text_color="#3b8ed0")
-    root.update() 
+    gui.status_label.configure(text="Status: AI is calculating dates & thinking...", text_color="#3b8ed0")
+    gui.root.update() 
 
     data_list, error = ai_engine.process_command(user_text)
 
     if error:
-        status_label.configure(text=f"Status: AI Error! \n({error})", text_color="red")
+        gui.status_label.configure(text=f"Status: AI Error! \n({error})", text_color="red")
         return
         
     events_added = 0
-    
     for data in data_list:
         action = data.get('action', 'schedule')
+        expanded_events = generate_recurring_events(data)
         
-        if action == "clear_day":
-            target_date = data.get('date')
-            target_cat = data.get('target_category', 'All')
-            database.clear_category_for_day(target_date, target_cat)
-            status_label.configure(text=f"Status: Wiped {target_cat} schedule for {target_date}.", text_color="#2fa572")
-            continue 
-            
-        if process_and_save_event(data):
-            events_added += 1
+        for ev in expanded_events:
+            if action == "clear_day":
+                database.clear_category_for_day(ev['date'], "Academic") 
+                database.add_event(ev) 
+                events_added += 1
+            else:
+                if process_and_save_event(ev):
+                    events_added += 1
     
-    status_label.configure(text=f"Status: Successfully added {events_added} new event(s)!", text_color="#2fa572")
-    command_entry.delete(0, tk.END)
+    gui.status_label.configure(text=f"Status: Successfully added {events_added} new event(s)!", text_color="#2fa572")
+    gui.command_entry.delete(0, tk.END)
     
     if data_list and data_list[0].get('date'):
         target_date = datetime.strptime(data_list[0]['date'], "%Y-%m-%d").date()
-        cal.selection_set(target_date)
+        gui.cal.selection_set(target_date)
         view_schedule()
 
+def toggle_manual_panel():
+    if gui.manual_panel.winfo_ismapped():
+        gui.manual_panel.pack_forget()
+    else:
+        gui.manual_date.delete(0, tk.END)
+        gui.manual_date.insert(0, gui.cal.selection_get().strftime("%Y-%m-%d"))
+        gui.manual_panel.pack(fill="x", padx=30, pady=10, after=gui.btn_toggle_manual)
 
 def add_manually():
-    task = manual_task.get()
-    time = manual_time.get()
-    cat = manual_cat.get()
-    loc = manual_loc.get() 
-    date = cal.selection_get().strftime("%Y-%m-%d")
+    task, time, cat, loc = gui.manual_task.get(), gui.manual_time.get(), gui.manual_cat.get(), gui.manual_loc.get() 
+    date = gui.manual_date.get()
+    recur_type = gui.manual_recur.get().lower()
+    recur_until = gui.manual_end_date.get()
     
-    is_task = (manual_type_var.get() == "Task (Deadline)")
+    is_task = (gui.manual_type_var.get() == "Task (Deadline)")
     item_type = "task" if is_task else "event"
     duration = 0 if is_task else 60 
     
     if not loc.strip(): 
         loc = "TBD" 
     
-    if not task or not time:
-        status_label.configure(text="Status: Fill all manual fields!", text_color="red")
+    if not task or not time or not date:
+        gui.status_label.configure(text="Status: Fill Title, Date, and Time!", text_color="red")
         return
         
-    try:
-        req_time_obj = datetime.strptime(time, "%H:%M")
-    except ValueError:
-        messagebox.showerror("Time Format Error", "Please enter the time in 24-hour format (e.g., 14:00).")
-        return
-
-    now = datetime.now()
-    if date == now.strftime("%Y-%m-%d") and req_time_obj.time() < now.time():
-        tomorrow_obj = now + timedelta(days=1)
-        date = tomorrow_obj.strftime("%Y-%m-%d")
-        messagebox.showinfo("Time Travel", f"That time has already passed today!\n\nSAPSA automatically moved '{task}' to tomorrow ({date}).")
-        cal.selection_set(tomorrow_obj.date())
-
     data = {
         "task": task, "date": date, "time": time, 
         "category": cat, "duration_mins": duration, 
         "is_flexible": False, "location": loc,
-        "item_type": item_type
+        "item_type": item_type, "recur_type": recur_type, "recur_until": recur_until
     }
     
-    if process_and_save_event(data):
-        status_label.configure(text="Status: Event added manually.", text_color="#2fa572")
-        manual_task.delete(0, tk.END)
-        manual_time.delete(0, tk.END)
-        manual_loc.delete(0, tk.END) 
-        view_schedule()
-        toggle_manual_panel()
+    expanded = generate_recurring_events(data)
+    for ev in expanded:
+        process_and_save_event(ev)
+        
+    gui.status_label.configure(text=f"Status: Saved {len(expanded)} event(s)!", text_color="#2fa572")
+    view_schedule()
+    toggle_manual_panel()
 
 def get_briefing():
-    selected_date = cal.selection_get().strftime("%Y-%m-%d")
+    selected_date = gui.cal.selection_get().strftime("%Y-%m-%d")
     events = database.get_events_for_date(selected_date)
     
-    status_label.configure(text="Status: AI is analyzing your day...", text_color="#3b8ed0")
-    root.update()
+    gui.status_label.configure(text="Status: AI is analyzing your day...", text_color="#3b8ed0")
+    gui.root.update()
     
     briefing, error = ai_engine.generate_daily_briefing(selected_date, events)
-    
     if error:
         messagebox.showerror("AI Error", f"Failed to generate briefing:\n{error}")
-        status_label.configure(text="Status: Ready", text_color="gray")
+        gui.status_label.configure(text="Status: Ready", text_color="gray")
     else:
         messagebox.showinfo(f"SAPSA Briefing - {selected_date}", briefing)
-        status_label.configure(text="Status: Briefing generated!", text_color="#2fa572")
+        gui.status_label.configure(text="Status: Briefing generated!", text_color="#2fa572")
     
 def delete_gui_event():
-    selected = schedule_listbox.curselection()
+    selected = gui.schedule_listbox.curselection()
     if not selected:
         messagebox.showwarning("Warning", "Please select an event to delete.")
         return
     
-    item_text = schedule_listbox.get(selected[0])
+    item_text = gui.schedule_listbox.get(selected[0])
     if "No events" in item_text:
         return
 
-    parts = item_text.replace("🕒 ", "").split(" | ")
-    event_time = parts[0].split(" ")[0] 
-    event_task = parts[1].split(" (Loc:")[0].strip() 
-    selected_date = cal.selection_get().strftime("%Y-%m-%d")
-    
+    if "🚨" in item_text:
+        parts = item_text.replace("🚨 ", "").split(" | ")
+        event_time = parts[0].strip()
+        event_task = parts[1].split(" [")[0].strip()
+    else:
+        parts = item_text.replace("🕒 ", "").split(" | ")
+        event_time = parts[0].split(" ")[0].strip() 
+        event_task = parts[1].split(" (Loc:")[0].strip() 
+        
+    selected_date = gui.cal.selection_get().strftime("%Y-%m-%d")
     database.delete_event(selected_date, event_time, event_task)
-    status_label.configure(text="Status: Event deleted.", text_color="#2fa572")
+    gui.status_label.configure(text="Status: Event deleted.", text_color="#2fa572")
     view_schedule()
 
 def exit_app():
-    root.destroy()
+    gui.root.destroy()
 
 # ==========================================
-# 2. GUI SETUP 
+# PREDICTIVE TEMPLATE ENGINE
 # ==========================================
-ctk.set_appearance_mode("dark")  
-ctk.set_default_color_theme("blue")  
-
-root = ctk.CTk()
-root.title("SAPSA - Smart Assistant")
-root.geometry("900x800")
-
-# --- STAGE 2: THE 3 MAIN VIEW CONTAINERS ---
-# --- STAGE 3: THE SCROLLABLE VIEW CONTAINERS ---
-top_frame = ctk.CTkFrame(root, fg_color="transparent")
-top_frame.pack(pady=20, fill="x", padx=20)
-
-# The Task Manager Frame
-task_view_frame = ctk.CTkFrame(root, corner_radius=15, fg_color="#2b2b2b")
-ctk.CTkLabel(task_view_frame, text="📋 Task Manager", font=("Segoe UI", 20, "bold")).pack(pady=(10, 5))
-task_scroll = ctk.CTkScrollableFrame(task_view_frame, fg_color="transparent")
-task_scroll.pack(fill="both", expand=True, padx=10, pady=10)
-
-# The Grand Dashboard Frame
-dash_view_frame = ctk.CTkFrame(root, corner_radius=15, fg_color="#2b2b2b")
-ctk.CTkLabel(dash_view_frame, text="🚀 Grand Dashboard (Upcoming)", font=("Segoe UI", 20, "bold")).pack(pady=(10, 5))
-dash_scroll = ctk.CTkScrollableFrame(dash_view_frame, fg_color="transparent")
-dash_scroll.pack(fill="both", expand=True, padx=10, pady=10)
-# -------------------------------------------
-
-today = datetime.now()
-
-cal_frame = ctk.CTkFrame(top_frame, corner_radius=15)
-cal_frame.pack(side="left", padx=10, fill="both", expand=True)
-
-cal = Calendar(cal_frame, selectmode='day', 
-               year=today.year, month=today.month, day=today.day, 
-               font=("Segoe UI", 15), cursor="hand2", background="#2b2b2b", 
-               foreground="white", headersbackground="#1f538d",
-               selectbackground="#8e44ad") 
-               
-cal.pack(padx=15, pady=15, fill="both", expand=True) 
-cal.bind("<<CalendarSelected>>", view_schedule) 
-cal.tag_config("current_day", background="#2fa572", foreground="white")
-cal.calevent_create(today.date(), "Today", "current_day")
-
-list_frame = ctk.CTkFrame(top_frame, corner_radius=15)
-list_frame.pack(side="right", fill="both", expand=True, padx=10)
-
-date_label = ctk.CTkLabel(list_frame, text="Schedule for: ", font=("Segoe UI", 16, "bold"))
-date_label.pack(pady=10)
-
-schedule_listbox = tk.Listbox(list_frame, font=("Consolas", 12), height=10, 
-                              bg="#2b2b2b", fg="white", selectbackground="#1f538d", borderwidth=0)
-schedule_listbox.pack(fill="both", expand=True, padx=10, pady=5)
-
-btn_frame = ctk.CTkFrame(list_frame, fg_color="transparent")
-btn_frame.pack(pady=10)
-
-btn_delete = ctk.CTkButton(btn_frame, text="Delete Selected", fg_color="#c93434", hover_color="#a32a2a", command=delete_gui_event)
-btn_delete.pack(side="left", padx=5)
-
-btn_briefing = ctk.CTkButton(btn_frame, text="Generate AI Briefing", command=get_briefing)
-btn_briefing.pack(side="left", padx=5)
-
-ai_frame = ctk.CTkFrame(root, corner_radius=15)
-ai_frame.pack(fill="x", padx=30, pady=10)
-
-ctk.CTkLabel(ai_frame, text="🤖 AI Assistant", font=("Segoe UI", 16, "bold"), text_color="#3b8ed0").pack(pady=(10, 0))
-
-ai_input_frame = ctk.CTkFrame(ai_frame, fg_color="transparent")
-ai_input_frame.pack(pady=10)
-
-command_entry = ctk.CTkEntry(ai_input_frame, font=("Segoe UI", 14), width=450, placeholder_text="e.g., Schedule a 2-hour OS lab tomorrow at 2 PM")
-command_entry.pack(side="left", padx=10)
-
-btn_ask = ctk.CTkButton(ai_input_frame, text="Ask AI", font=("Segoe UI", 14, "bold"), command=ask_ai)
-btn_ask.pack(side="left")
-
 # ==========================================
-# STAGE 1 UI: SMART MANUAL ENTRY PANEL
+# PREDICTIVE TEMPLATE ENGINE
 # ==========================================
-def toggle_manual_panel():
-    if manual_panel.winfo_ismapped():
-        manual_panel.pack_forget()
-        btn_toggle_manual.configure(text="➕ Add Manually")
+TEMPLATES = [
+    # --- LEVEL 1: THE BASICS (SINGLE EVENTS) ---
+    "Schedule [Class] tomorrow at [Time] for [Duration] mins.",
+    "Add [Class] today at [Time] in [Location].",
+    "Book a [Duration] min meeting for [Class] on [YYYY-MM-DD] at [Time].",
+    "I have [Class] on [Day] at [Time] in room [Location].",
+    "Set up a study session for [Class] at [Time].",
+    "Add a personal event called [Event Name] tonight at [Time].",
+    
+    # --- LEVEL 2: TASKS & DEADLINES ---
+    "Add a task called [Task Name] due on [YYYY-MM-DD] at [Time].",
+    "Remind me to [Task Name] by [Time] tomorrow.",
+    "Set a deadline for [Task Name] on [Day] at [Time].",
+    "Add a project milestone [Task Name] due next [Day] at [Time].",
+    "Create a task [Task Name] due today at [Time].",
+
+    # --- LEVEL 3: RECURRENCE & ROUTINES ---
+    "Schedule [Class] every [Day] at [Time] until [YYYY-MM-DD].",
+    "Book [Class] every [Day] and [Day] at [Time].",
+    "Add a weekly [Task/Event] every [Day] until [YYYY-MM-DD].",
+    "Set up a daily review session at [Time] until [YYYY-MM-DD].",
+    "Schedule [Class] every [Day] at [Time] in [Location] for [Duration] mins.",
+
+    # --- LEVEL 4: BATCHING (MULTIPLE SAME-DAY / DIFFERENT DAYS) ---
+    "Add [Class A] at [Time A] and [Class B] at [Time B] for tomorrow.",
+    "Schedule [Class A], [Class B], and [Class C] on [Day] at [Time 1], [Time 2], and [Time 3].",
+    "Book [Class A] on [Day 1] and [Class B] on [Day 2] at [Time].",
+    "Add a task [Task A] and task [Task B] both due on [YYYY-MM-DD].",
+    
+    # --- LEVEL 5: THE "RESPECTIVELY" LEGENDS ---
+    "Add [Class A], [Class B], and [Class C] on [Day 1], [Day 2], and [Day 3] at [Time 1], [Time 2], and [Time 3] respectively.",
+    "Schedule [Class 1] and [Class 2] at [Time 1] and [Time 2] in [Loc 1] and [Loc 2] respectively.",
+    "Add [Class A], [Class B], and [Class C] on [Day] at [Time 1], [Time 2], and [Time 3] in [Loc 1], [Loc 2], and [Loc 3] respectively.",
+    "Book [Class 1] and [Class 2] on [Day 1] and [Day 2] respectively, both at [Time].",
+
+    # --- LEVEL 6: AUTOMATION & SICK DAYS ---
+    "Mark every [Day] this month as an Off Day.",
+    "Mark [YYYY-MM-DD] and [YYYY-MM-DD] as Sick Days.",
+    "Clear my schedule completely for [YYYY-MM-DD].",
+    "Set tomorrow as a Sick Day.",
+    "Mark next [Day] as an Off Day.",
+    
+    # --- LEVEL 7: HYBRID (TASKS + EVENTS) ---
+    "Schedule [Class] at [Time] and add a task [Task] due at [Time].",
+    "Add [Class] on [Day] at [Time] and remind me to [Task] by [Time].",
+    "Book [Class] tomorrow at [Time] and add a project deadline [Task] on [Date].",
+    "Set [Class] for [Day] at [Time], also set [Task] due the same day at [Time].",
+    
+    # --- LEVEL 8: EXAMS & QUIZZES ---
+    "Schedule a [Class] Exam on [YYYY-MM-DD] at [Time] in [Location].",
+    "Add a [Duration] min [Class] Quiz tomorrow at [Time]."
+]
+
+def handle_typing(event):
+    """Fires every time a key is pressed to filter templates."""
+    # Ignore keys used for navigation and deletion
+    if event.keysym in ['Up', 'Down', 'Return', 'Tab', 'Control_L', 'Control_R', 'BackSpace']: 
+        return
+
+    typed = gui.command_entry.get().lower()
+    if not typed:
+        gui.suggestion_box.place_forget()
+        return
+
+    # Fuzzy match: Find templates that contain the typed letters (Max 6 results now)
+    matches = [t for t in TEMPLATES if typed in t.lower()][:6]
+
+    if matches:
+        gui.suggestion_box.delete(0, tk.END)
+        for m in matches:
+            gui.suggestion_box.insert(tk.END, m)
+            
+        x_pos = gui.command_entry.winfo_rootx() - gui.root.winfo_rootx()
+        y_pos = gui.command_entry.winfo_rooty() - gui.root.winfo_rooty() + gui.command_entry.winfo_height()
+        
+        gui.suggestion_box.place(x=x_pos, y=y_pos, width=gui.command_entry.winfo_width(), height=len(matches) * 25)
+        gui.suggestion_box.lift()
+        
+        # Auto-highlight the top item so 'Enter' grabs it immediately
+        gui.suggestion_box.selection_clear(0, tk.END)
+        gui.suggestion_box.selection_set(0)
     else:
-        manual_panel.pack(fill="x", padx=30, pady=10, after=btn_toggle_manual)
-        btn_toggle_manual.configure(text="➖ Close Manual Entry")
+        gui.suggestion_box.place_forget()
 
-def update_manual_ui(*args):
-    if manual_type_var.get() == "Task (Deadline)":
-        time_label.configure(text="Deadline Time:")
-    else:
-        time_label.configure(text="Start Time:")
+def navigate_suggestions(event):
+    """Allows arrow keys to scroll through the dropdown box."""
+    if not gui.suggestion_box.winfo_ismapped():
+        return
+        
+    size = gui.suggestion_box.size()
+    if size == 0: return
 
-btn_toggle_manual = ctk.CTkButton(root, text="➕ Add Manually", fg_color="transparent", border_width=2, text_color="white", hover_color="#8e44ad", command=toggle_manual_panel)
-btn_toggle_manual.pack(pady=(5, 10))
+    sel = gui.suggestion_box.curselection()
+    current_idx = sel[0] if sel else 0
 
-manual_panel = ctk.CTkFrame(root, corner_radius=15, fg_color="#2b2b2b")
+    if event.keysym == 'Up':
+        next_idx = max(0, current_idx - 1)
+    elif event.keysym == 'Down':
+        next_idx = min(size - 1, current_idx + 1)
+            
+    gui.suggestion_box.selection_clear(0, tk.END)
+    gui.suggestion_box.selection_set(next_idx)
+    gui.suggestion_box.activate(next_idx)
+    return 'break' # Prevents cursor from jumping in the text box
 
-man_inner = ctk.CTkFrame(manual_panel, fg_color="transparent")
-man_inner.pack(pady=15)
+def custom_ctrl_backspace(event):
+    """Custom macro to delete whole words or [Bracketed] templates."""
+    cursor_pos = gui.command_entry.index(tk.INSERT)
+    text = gui.command_entry.get()[:cursor_pos]
+    
+    if not text: return 'break'
 
-manual_type_var = ctk.StringVar(value="Event (Takes Time)")
-manual_type_var.trace_add("write", update_manual_ui) 
+    i = cursor_pos - 1
+    # 1. Skip trailing spaces
+    while i >= 0 and text[i] == ' ':
+        i -= 1
+        
+    # 2. Skip letters until we hit a space or an opening bracket '['
+    while i >= 0 and text[i] not in [' ', '[']:
+        i -= 1
+        
+    # 3. If we stopped on an opening bracket '[', delete that bracket too
+    if i >= 0 and text[i] == '[':
+        i -= 1 
+        
+    delete_start = i + 1
+    gui.command_entry.delete(delete_start, cursor_pos)
+    
+    # Manually trigger the typing handler so the dropdown updates!
+    handle_typing(event)
+    return 'break'
 
-ctk.CTkLabel(man_inner, text="Type:", font=("Segoe UI", 12, "bold")).grid(row=0, column=0, padx=5, pady=5)
-ctk.CTkSegmentedButton(man_inner, values=["Event (Takes Time)", "Task (Deadline)"], variable=manual_type_var, selected_color="#8e44ad").grid(row=0, column=1, columnspan=3, pady=5, sticky="ew")
+def accept_suggestion(event):
+    """Fires when Tab or Enter is pressed to auto-fill the text."""
+    if gui.suggestion_box.winfo_ismapped():
+        selection = gui.suggestion_box.curselection()
+        selected_text = gui.suggestion_box.get(selection[0]) if selection else gui.suggestion_box.get(0)
+        
+        gui.command_entry.delete(0, tk.END)
+        gui.command_entry.insert(0, selected_text)
+        gui.suggestion_box.place_forget()
+        return 'break'
 
-ctk.CTkLabel(man_inner, text="Title:").grid(row=1, column=0, padx=5, pady=5)
-manual_task = ctk.CTkEntry(man_inner, width=150)
-manual_task.grid(row=1, column=1, padx=5, pady=5)
-
-time_label = ctk.CTkLabel(man_inner, text="Start Time:")
-time_label.grid(row=1, column=2, padx=5, pady=5)
-manual_time = ctk.CTkEntry(man_inner, width=80, placeholder_text="14:00")
-manual_time.grid(row=1, column=3, padx=5, pady=5)
-
-ctk.CTkLabel(man_inner, text="Loc:").grid(row=1, column=4, padx=5, pady=5)
-manual_loc = ctk.CTkEntry(man_inner, width=80)
-manual_loc.grid(row=1, column=5, padx=5, pady=5)
-
-ctk.CTkLabel(man_inner, text="Category:").grid(row=2, column=0, padx=5, pady=10)
-manual_cat = ctk.CTkComboBox(man_inner, values=["Academic", "Self-Study", "Home Chores", "Outdoor Errands", "Project", "Exam", "Quiz", "Assignment", "Lab Task", "Personal Task"], width=150)
-manual_cat.grid(row=2, column=1, columnspan=2, padx=5, pady=10, sticky="w")
-
-btn_man = ctk.CTkButton(man_inner, text="Save to Schedule", font=("Segoe UI", 12, "bold"), fg_color="#2fa572", hover_color="#248058", command=add_manually)
-btn_man.grid(row=2, column=4, columnspan=2, padx=15, pady=10)
+def hide_suggestions(event):
+    """Hides the box if you click somewhere else."""
+    gui.suggestion_box.place_forget()
 
 # ==========================================
-# STAGE 2 UI: NAVIGATION HUB 
+# 4. INITIALIZATION & COMMAND HOOKUPS
 # ==========================================
-nav_frame = ctk.CTkFrame(root, fg_color="transparent")
-nav_frame.pack(pady=10)
+gui.btn_ask.configure(command=ask_ai)
+gui.btn_man_save.configure(command=add_manually)
+gui.btn_toggle_manual.configure(command=toggle_manual_panel)
+gui.btn_og.configure(command=lambda: switch_view("og"))
+gui.btn_tasks.configure(command=lambda: switch_view("tasks"))
+gui.btn_dash.configure(command=lambda: switch_view("dash"))
+gui.btn_delete.configure(command=delete_gui_event)
+gui.btn_briefing.configure(command=get_briefing)
+gui.btn_exit.configure(command=exit_app)
+gui.cal.bind("<<CalendarSelected>>", view_schedule)
+gui.command_entry.bind('<KeyRelease>', handle_typing)
+gui.command_entry.bind('<Tab>', accept_suggestion)
+gui.command_entry.bind('<Up>', navigate_suggestions)
+gui.command_entry.bind('<Down>', navigate_suggestions)
+gui.command_entry.bind('<Control-BackSpace>', custom_ctrl_backspace)
+gui.command_entry.bind('<Return>', lambda e: accept_suggestion(e) if gui.suggestion_box.winfo_ismapped() else ask_ai())
+gui.root.bind('<Button-1>', hide_suggestions)
+# Tells Python to fire the refresh function the millisecond a character is typed or deleted!
+gui.dash_search_var.trace_add("write", refresh_grand_dashboard)
+gui.btn_settings.configure(command=lambda: switch_view("settings"))
+gui.btn_save_settings.configure(command=save_settings)
 
-btn_og = ctk.CTkButton(nav_frame, text="📅 OG Schedule", font=("Segoe UI", 14, "bold"), height=40, command=lambda: switch_view("og"))
-btn_og.pack(side="left", padx=10)
 
-btn_tasks = ctk.CTkButton(nav_frame, text="📋 Task Manager", font=("Segoe UI", 14, "bold"), height=40, fg_color="#d68910", hover_color="#b3710d", command=lambda: switch_view("tasks"))
-btn_tasks.pack(side="left", padx=10)
-
-btn_dash = ctk.CTkButton(nav_frame, text="🚀 Grand Dashboard", font=("Segoe UI", 14, "bold"), height=40, fg_color="#2fa572", hover_color="#248058", command=lambda: switch_view("dash"))
-btn_dash.pack(side="left", padx=10)
-
-# ==========================================
-
-status_label = ctk.CTkLabel(root, text="Status: Ready", font=("Segoe UI", 14, "italic"), text_color="gray")
-status_label.pack(pady=10)
-
-btn_exit = ctk.CTkButton(root, text="Close SAPSA", fg_color="transparent", border_width=2, text_color="gray", hover_color="#c93434", command=exit_app)
-btn_exit.pack(pady=10)
-
+paint_calendar()
 view_schedule() 
-root.mainloop()
+gui.root.mainloop()

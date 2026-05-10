@@ -31,12 +31,6 @@
     },
     {
         "task": "OS class",
-        "date": "2026-05-11",
-        "time": "14:00",
-        "category": "Academic"
-    },
-    {
-        "task": "OS class",
         "date": "2026-05-14",
         "time": "15:00",
         "category": "Academic"
@@ -69,12 +63,6 @@
         "task": "OS class",
         "date": "2026-05-04",
         "time": "16:00",
-        "category": "Academic"
-    },
-    {
-        "task": "OS class",
-        "date": "2026-05-11",
-        "time": "15:00",
         "category": "Academic"
     },
     {
@@ -122,12 +110,6 @@
     {
         "task": "OS class",
         "date": "2026-05-15",
-        "time": "14:00",
-        "category": "Academic"
-    },
-    {
-        "task": "OS class",
-        "date": "2026-05-22",
         "time": "14:00",
         "category": "Academic"
     },
@@ -180,5 +162,390 @@
         "category": "Self-Study",
         "duration_mins": 60,
         "is_flexible": true
+    },
+    {
+        "task": "DLD classes",
+        "date": "2026-05-12",
+        "time": "13:00",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "DLD classes",
+        "date": "2026-05-13",
+        "time": "13:00",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "DLD classes",
+        "date": "2026-05-14",
+        "time": "13:00",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "DLD classes",
+        "date": "2026-05-15",
+        "time": "15:00",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "LA class",
+        "date": "2026-05-13",
+        "time": "15:00",
+        "location": "A06",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "Class",
+        "date": "2026-05-12",
+        "time": "13:00",
+        "location": "D15 of AI",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "AI Class",
+        "date": "2026-05-16",
+        "time": "13:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "AI Class",
+        "date": "2026-05-16",
+        "time": "13:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "AI Class",
+        "date": "2026-05-16",
+        "time": "13:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "AI Class",
+        "date": "2026-05-18",
+        "time": "13:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "AI Class",
+        "date": "2026-05-18",
+        "time": "13:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "AI Class",
+        "date": "2026-05-19",
+        "time": "13:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "AI Class",
+        "date": "2026-05-19",
+        "time": "13:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "AI Class",
+        "date": "2026-05-20",
+        "time": "13:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "AI Class",
+        "date": "2026-05-20",
+        "time": "13:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "action": "schedule",
+        "target_category": "",
+        "task": "OS Lecture",
+        "date": "2026-05-19",
+        "time": "14:00",
+        "location": "Room D14",
+        "category": "Academic",
+        "duration_mins": 180,
+        "is_flexible": false
+    },
+    {
+        "action": "schedule",
+        "target_category": "",
+        "task": "OS Lecture",
+        "date": "2026-05-19",
+        "time": "14:00",
+        "location": "Room D14",
+        "category": "Academic",
+        "duration_mins": 180,
+        "is_flexible": false
+    },
+    {
+        "action": "schedule",
+        "target_category": "",
+        "task": "DLD Class",
+        "date": "2026-05-19",
+        "time": "10:00",
+        "location": "Lab 5",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "action": "schedule",
+        "target_category": "",
+        "task": "DLD Class",
+        "date": "2026-05-19",
+        "time": "10:00",
+        "location": "Lab 5",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "action": "schedule",
+        "target_category": "",
+        "task": "AI class",
+        "date": "2026-05-20",
+        "time": "14:00",
+        "location": "",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "action": "schedule",
+        "target_category": "",
+        "task": "AI class",
+        "date": "2026-05-20",
+        "time": "14:00",
+        "location": "",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "action": "schedule",
+        "target_category": "",
+        "task": "meeting with Usman and Hammad",
+        "date": "2026-05-10",
+        "time": "02:00",
+        "location": "LLC",
+        "category": "Self-Study",
+        "duration_mins": 60,
+        "is_flexible": false
+    },
+    {
+        "task": "meeting with usman and hammad",
+        "date": "2026-05-09",
+        "time": "02:00",
+        "category": "Self-Study",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "location": "LLC"
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "AI class",
+        "date": "2026-05-18",
+        "time": "08:00",
+        "location": "E31",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "AI class",
+        "date": "2026-05-21",
+        "time": "09:00",
+        "location": "D26",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "AI class",
+        "date": "2026-05-20",
+        "time": "10:00",
+        "location": "C16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "SDA project evaluation",
+        "date": "2026-05-13",
+        "time": "12:00",
+        "location": "TBD",
+        "category": "Project",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "task",
+        "task": "AI project deadline",
+        "date": "2026-05-10",
+        "time": "19:00",
+        "location": "TBD",
+        "category": "Project",
+        "duration_mins": 0,
+        "is_flexible": false,
+        "status": "pending"
+    },
+    {
+        "action": "schedule",
+        "item_type": "task",
+        "task": "DataBase project",
+        "date": "2026-05-10",
+        "time": "22:00",
+        "location": "TBD",
+        "category": "Project",
+        "duration_mins": 0,
+        "is_flexible": false,
+        "status": "pending"
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "AI Lab Class",
+        "date": "2026-05-12",
+        "time": "14:00",
+        "location": "lab6",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "class",
+        "date": "2026-05-12",
+        "time": "15:00",
+        "location": "room 67 at nigga college",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": "",
+        "recur_type": "none",
+        "recur_until": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "task",
+        "task": "DB Lab01",
+        "date": "2026-05-11",
+        "time": "21:00",
+        "location": "TBD",
+        "category": "Lab Task",
+        "duration_mins": 0,
+        "is_flexible": true,
+        "status": "pending",
+        "recur_type": "none",
+        "recur_until": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "PF",
+        "date": "2026-05-13",
+        "time": "10:00",
+        "location": "E34",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": "",
+        "recur_type": "none",
+        "recur_until": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "AI",
+        "date": "2026-05-13",
+        "time": "11:00",
+        "location": "D17",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": "",
+        "recur_type": "none",
+        "recur_until": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "OS",
+        "date": "2026-05-14",
+        "time": "08:00",
+        "location": "D16",
+        "category": "Academic",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": "",
+        "recur_type": "none",
+        "recur_until": ""
+    },
+    {
+        "action": "schedule",
+        "item_type": "event",
+        "task": "friends wedding",
+        "date": "2026-05-11",
+        "time": "20:00",
+        "location": "TBD",
+        "category": "Personal Task",
+        "duration_mins": 60,
+        "is_flexible": false,
+        "status": "",
+        "recur_type": "none",
+        "recur_until": ""
     }
 ]

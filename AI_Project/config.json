@@ -1,0 +1,9 @@
+{
+    "academic_start": "08:00",
+    "academic_end": "17:00",
+    "weekends": [
+        1,
+        5,
+        6
+    ]
+}
