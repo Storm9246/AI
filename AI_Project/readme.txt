@@ -69,9 +69,9 @@ SAPSA is built using a highly modular Model-View-Controller architecture:
 
 Submitted for the Artificial Intelligence (AI) course (Spring 2026):
 
-* **Zain ul Abideen Ahmad** (24K-0818)
-* **Usman Hasan** (24K-0759)
-* **Fatima Salman** (24K-1021)
+* **Zain ul Abideen Ahmad** (24K-0818) github.com/Storm9246
+* **Usman Hasan** (24K-0759) github.com/Lotusdon
+* **Fatima Salman** (24K-1021) github.com/FatimaSalmann
 
 ```
 
